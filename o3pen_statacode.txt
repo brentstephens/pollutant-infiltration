@@ -1,0 +1,60 @@
+ozone penetration code
+copy and paste into state
+
+june 2011
+bs
+
+**************************
+
+co2 calcs:
+*SUMMARIZE STEADY STATE OUTDOOR CO2 CONCENTRATION FIRST!
+*REPLACE WHERE YOU SEE "442"
+
+gen hot = v1/60
+gen hot_decay = hot - hot[20] in 20/47
+
+gen str location = ""
+replace location = "out" in 10/50
+
+nl (co2ppm = {init}*exp(-{aer}*hot_decay) + 442*(1-exp(-{aer}*hot_decay))) if hot_decay != ., initial(init 2000 aer .2)
+
+gen est_co2 = _coef[/init]*exp(-_coef[/aer]*hot_decay) + 442*(1-exp(-_coef[/aer]*hot_decay))
+
+twoway (scatter co2ppm hot_decay) (line est_co2 hot_decay)
+
+**************************
+
+infile ozone:
+
+ren v1 n
+ren v2 o3raw
+*if ozone gen needs calibrating
+gen o3 = 1.0856*o3raw
+replace o3 = . if o3 <0
+replace o3 = . if o3 >150
+gen str location = ""
+replace location = "out" in 11/58
+replace location = "in" in 72/334
+gen ss = 1 if n>250 & location=="in"
+
+
+**************************
+ozone calcs:
+
+
+gen hot_decay = (n - n[72])/(6*60) in 72/334
+
+nl (o3 = {init}*exp(-{loss}*hot_decay) + {source}/{loss}*(1-exp(-{loss}*hot_decay))) if hot_decay !=., initial(init 50 loss 4 source 3)
+
+gen est_o3 = _coef[/init]*exp(-_coef[/loss]*hot_decay) + _coef[/source]/_coef[/loss]*(1-exp(-_coef[/loss]*hot_decay))
+
+twoway (scatter o3 hot_decay) (line est_o3 hot_decay) if hot_decay!=.
+
+
+*******
+ozone calcs:
+decay only
+
+nl (o3 = {init}*exp(-{loss}*hot_decay)) if hot_decay !=., initial(init 50 loss 4)
+gen est_o3 = _coef[/init]*exp(-_coef[/loss]*hot_decay)
+twoway (scatter o3 hot_decay) (line est_o3 hot_decay) if hot_decay!=.
